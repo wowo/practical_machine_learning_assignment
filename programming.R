@@ -1,0 +1,1 @@
+train <- read.csv(file = 'pml-training.csv');
