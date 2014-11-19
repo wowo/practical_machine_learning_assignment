@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 .~lock.*
+problem_id_*.txt
+*.Robj
