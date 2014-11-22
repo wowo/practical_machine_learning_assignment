@@ -29,7 +29,7 @@ table(pred, trainPC$classe)
 
 
 pred <- predict(modFit, testPC)
-table(pred, testPC$classe)
+# table(pred, testPC$classe)
 
 finalTest$prediction <- predict(modFit, finalTest)
 
