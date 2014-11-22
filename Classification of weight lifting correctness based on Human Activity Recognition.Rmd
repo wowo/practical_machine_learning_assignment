@@ -2,7 +2,10 @@
 title: "Classification of weight lifting correctness based on Human Activity Recognition"
 author: "Wojciech Sznapka"
 date: "21.11.2014"
-output: html_document
+output:
+  html_document:
+    fig_caption: yes
+    highlight: tango
 ---
 
 ## Introduction
@@ -28,7 +31,7 @@ Two datasets (training and test) were downloaded from <http://coursera.org> webs
 
 Whole data processing were done using R software (R version 3.0.2 (2013-09-25)) under 32-bit Ubuntu Linux. Caret, randomForest and mlearning packages were used.
 
-```{r, results='asis', echo=FALSE}
+```{r}
 library(caret)
 library(randomForest)
 ```
@@ -102,7 +105,7 @@ We can see that belt, dumbbell and forearm give important measurements, while ar
 
 Using previously created model, we predicted values on training and test sets. The results proved that usage of Random Forest were right choice to make. We used `confusion` and `confusionImage` to visualise Confusion Matrix, to check how model performs and how many mistakes it produces.
 
-```{r , results='asis', echo=FALSE}
+```{r}
 library(mlearning)
 ```
 ```{r}
@@ -130,4 +133,5 @@ Predicted values for given test has been uploaded to Coursera platform for autom
 
 ## References
 [1] Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
 [2] Random Forest on Wikipedia <http://en.wikipedia.org/wiki/Random_forest>
