@@ -64,7 +64,6 @@ What's more, we decided to remove another set of columns, which were returned by
 
 ```{r, cache=TRUE}
 colsToDrop <- nearZeroVar(train)
-dim(colsToDrop)
 
 train <- train[, -colsToDrop]
 validation <- validation[, -colsToDrop]

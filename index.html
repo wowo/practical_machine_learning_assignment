@@ -117,9 +117,8 @@ validation &lt;-<span class="st"> </span>validation[, !(<span class="kw">names</
 finalTest &lt;-<span class="st"> </span>finalTest[, !(<span class="kw">names</span>(finalTest) %in%<span class="st"> </span>drops)]</code></pre>
 <p>What’s more, we decided to remove another set of columns, which were returned by near zero var method, because they wouldn’t be significant for the predictive model.</p>
 <pre class="sourceCode r"><code class="sourceCode r">colsToDrop &lt;-<span class="st"> </span><span class="kw">nearZeroVar</span>(train)
-<span class="kw">dim</span>(colsToDrop)</code></pre>
-<pre><code>## NULL</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r">train &lt;-<span class="st"> </span>train[, -colsToDrop]
+
+train &lt;-<span class="st"> </span>train[, -colsToDrop]
 validation &lt;-<span class="st"> </span>validation[, -colsToDrop]
 finalTest &lt;-<span class="st"> </span>finalTest[, -colsToDrop]</code></pre>
 <p>The last step of data preparation was dealing with NA values. Some columns were very sparse, meaning they contained a lot of NA’s. That caused inability to predict values for rows containing NA. We fixed that situation by putting zeros instead of NA’s</p>
