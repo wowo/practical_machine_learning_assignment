@@ -127,15 +127,15 @@ predValidation <- predict(modFit, validation)
 confusionImage(confusion(predValidation , validation$classe))
 ```
 
-
-## Summary
-
 The accuracy of the model can be calculated as:
 ```{r, cache=TRUE}
 accuracy <- confusionMatrix(table(predValidation, validation$classe))$overall['Accuracy']
+accuracy
 ```
 
-Accuracy of **`r round(accuracy, 4) * 100`%** indicates that model preform very well and is very accurate. The model has been used for test set provided for automatic grading to predict class of 20 measurements.
+## Conclusion
+
+Accuracy of **`r round(accuracy, 4) * 100`%** indicates that model based on Random Forests preform very well and is very accurate. The model has been used for test set provided for automatic grading to predict class of 20 measurements.
 
 ```{r, cache=TRUE}
 finalTest$prediction <- predict(modFit, finalTest)
