@@ -1,5 +1,5 @@
 ---
-title: "Classification of weight lifting correctness based on Human Activity Recognition"
+title: "Classification of weight lifting correctness exercise based on Human Activity Recognition"
 author: "Wojciech Sznapka"
 date: "21.11.2014"
 output:
@@ -10,128 +10,146 @@ output:
 
 ## Introduction
 
-The prompt is to predict quality of human's activity based on measurements collected from several sensors located on different parts of body. Six participants were performing Unilateral Dumbbell Biceps excercies, while wearing sensors and being assessed by experienced weight lifter. They were doing excercises in five different manners, described as classes A, B, C, D, E. The classes mean following:
+The prompt is to predict quality  of human's activity based on measurements collected from several sensors located on different parts of body. Six participants were performing Unilateral Dumbbell Biceps exercises, while wearing sensors and being assessed by experienced weight lifter. The sensors were located on arm, forearm, belt and dumbbell (see Figure 1). Participants were doing exercises in five different manners, described as classes A, B, C, D, E. The classes mean following:
 
-* A - correct execution of excercise
+* A - correct execution of exercise
 * B - throwing the elbows to the front 
 * C - lifting the dumbbell only halfway
 * D - lowering the dumbbell only halfway
 * E - throwing the hips to the front.
 
-The figure below ilustrates number and locations of sensors.
-
-![On body sensing schema](on-body-sensing-schema.png)
-
-Figure 1. On-body sensing schema.
-
+![Figure 1. On-body sensing schema.](on-body-sensing-schema.png)
 
 ## Loading Data
 
-Two datasets (training and test) were downloaded from <http://coursera.org> website, from **Practical Machine Learning** class resources on 21.11.2014. The training data for this project are available here: <https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv>. The test data are available here: <https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv>. The original source of the data is located here: <http://groupware.les.inf.puc-rio.br/har>
+Two data-sets (training and test) were downloaded from <http://coursera.org> website, from **Practical Machine Learning** class resources on 21.11.2014. The training data for this project are available here: <https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv>. The test data are available here: <https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv>. The original source of the data is located here: <http://groupware.les.inf.puc-rio.br/har>. The training set contains **classe** variable, which determines if given measurement were performed correctly (class A) or were faulty (B/C/D/E). The test set doesn't provides classe variable. It needs to be predicted.
 
-Whole data processing were done using R software (R version 3.0.2 (2013-09-25)) under 32-bit Ubuntu Linux. Caret, randomForest and mlearning packages were used.
+Whole data processing were done using R software (R version 3.0.2 (2013-09-25)) under 32-bit Ubuntu Linux (4x2,4 GHz CPU, 8GB of RAM). Following R packages were used to perform analysis: Caret, randomForest and mlearning.
 
-```{r}
+```{r, cache=TRUE}
 library(caret)
 library(randomForest)
+library(mlearning)
 ```
 
-The data was loaded from CSV and preeliminary examined to figure out it's size and specification.
+The data was loaded from CSV and preliminary examined to figure out it's size and specification.
 
-```{r}
-train <- read.csv(file = 'pml-training.csv');
+```{r, cache=TRUE}
+originalTrain <- read.csv(file = 'pml-training.csv');
 finalTest <- read.csv(file = 'pml-testing.csv');
 ```
 
-```{r}
-dim(train)
+```{r, cache=TRUE}
+dim(originalTrain)
 ```
 
-Testing data were missing **classe** (A/B/C/D/E) variable and the prompt was to predict it. So we decided to build model on subset of training data and validate it on rest of it. The model was splited 0.75 / 0.25.
+The provided train data-set was split into training set (0.75) and validation set (0.25) based on classe variable, in order to build model and validate its accuracy.
 
-```{r}
-partition <- createDataPartition(train$classe, p=.75, list=F)
-trainPC <- train[partition,]
-testPC <- train[-partition,]
+```{r, cache=TRUE}
+partition <- createDataPartition(originalTrain$classe, p=.75, list=F)
+train <- originalTrain[partition,]
+validation <- originalTrain[-partition,]
 ```
 
-Exploatory analysis of the data showed that some columns doesn't play significant role in model building. Thus we decided to drop them for further processing.
+Exploratory analysis of the data showed that some columns doesn't play significant role in model building. Thus we decided to drop them for further processing.
 
-```{r}
+```{r, cache=TRUE}
 drops <- c('X', 'user_name', 'raw_timestamp_part_1', 'raw_timestamp_part_2', 'cvtd_timestamp', 'new_window', 'num_window')
-trainPC <- trainPC[, !(names(trainPC) %in% drops)]
-testPC <- testPC[, !(names(testPC) %in% drops)]
+train <- train[, !(names(train) %in% drops)]
+validation <- validation[, !(names(validation) %in% drops)]
 finalTest <- finalTest[, !(names(finalTest) %in% drops)]
 ```
 
-What's more, we decided to remove another set of columns, which were returned by near zero var method
+What's more, we decided to remove another set of columns, which were returned by near zero var method, because they wouldn't be significant for the predictive model.
 
-```{r}
-colsToDrop <- nearZeroVar(trainPC)
+```{r, cache=TRUE}
+colsToDrop <- nearZeroVar(train)
 dim(colsToDrop)
 
-trainPC <- trainPC[, -colsToDrop]
-testPC <- testPC[, -colsToDrop]
+train <- train[, -colsToDrop]
+validation <- validation[, -colsToDrop]
 finalTest <- finalTest[, -colsToDrop]
 ```
 
-The last step of data preparation was dealing with NA values. Some columns were very sparse, meaning they contained a lot of NA's. That caused inability to predict values for those columns. We fixed that situation by putting zeros instead of NA's
+The last step of data preparation was dealing with NA values. Some columns were very sparse, meaning they contained a lot of NA's. That caused inability to predict values for rows containing NA. We fixed that situation by putting zeros instead of NA's
 
-```{r}
-trainPC[is.na(trainPC)] <- 0
-testPC[is.na(testPC)] <- 0
+```{r, cache=TRUE}
+train[is.na(train)] <- 0
+validation[is.na(validation)] <- 0
 finalTest[is.na(finalTest)] <- 0
 ```
 
 ## Building Model
 
-We decided to use Random Forest classification algorithm to build model which will be used for predicting. The model was build on training data and validated on testig data. Then it was used to solve actual problem - predict 20 activities in provided test set. The usage of caret 's train method was impossible due to problems with memory. Calling randomForest method directly made significant improvement in performace. Model was build based on **classe** variable and all remaining features.
+To make the research reproducible, we set seed to fixed value.
 
-```{r}
-modFit <- randomForest(classe ~ ., data=trainPC)
+```{r, cache=TRUE}
+set.seed(12345)
 ```
 
-We can see which variables played significant role in prediction bu using `varImpPlot` which plots dotchart of variable importance as measured by a Random Forest .
+We decided to use Random Forest [2] classification algorithm to build model which will be used for predicting.
+> Random forests are an ensemble learning method for classification (and regression) that operate by constructing a multitude of decision trees at training time and outputting the class that is the mode of the classes output by individual trees. 
 
-```{r}
+> Decision trees are a popular method for various machine learning tasks. Tree learning "come[s] closest to meeting the requirements for serving as an off-the-shelf procedure for data mining", say Hastie et al., because it is invariant under scaling and various other transformations of feature values, is robust to inclusion of irrelavant features, and produces inspectable models. However, they are seldom accurate.[3]
+
+> In particular, trees that are grown very deep tend to learn highly irregular patterns: they overfit their training sets, because they have low bias, but very high variance. Random forests are a way of averaging multiple deep decision trees, trained on different parts of the same training set, with the goal of reducing the variance.[3] This comes at the expense of a small increase in the bias and some loss of interpretability, but generally greatly boosts the performance of the final model.
+
+The model was build on training data and validated on validation set. Then it was used to solve actual problem - predict class for 20 activities in test set. The usage of caret 's train method n(with parameter `method="rf"`) was impossible due to problems with memory allocation. Calling `randomForest` method directly made significant improvement in performance. Model was build based on **classe** variable and all remaining features in train set.
+
+In random forests, there is no need for cross-validation or a separate test set to get an unbiased estimate of the test set error. [5]
+
+
+```{r, cache=TRUE}
+modFit <- randomForest(classe ~ ., data=train)
+```
+
+We can check which variables played significant role in prediction bu using `varImpPlot` method. It plots dot-chart of variable importance as measured by a Random Forest. It illustrates importance in **mean decrease in Gini**, which means:
+
+> Every time a split of a node is made on variable m the gini impurity criterion for the two descendent nodes is less than the parent node. Adding up the gini decreases for each individual variable over all trees in the forest gives a fast variable importance that is often very consistent with the permutation importance measure.. [4]
+
+```{r, cache=TRUE, fig.cap='Figure 2. Variables importance'}
 varImpPlot(modFit)
 ```
-
-Figure 2. Variables importance 
 
 We can see that belt, dumbbell and forearm give important measurements, while arm isn't that important here.
 
 ## Analysis
 
-Using previously created model, we predicted values on training and test sets. The results proved that usage of Random Forest were right choice to make. We used `confusion` and `confusionImage` to visualise Confusion Matrix, to check how model performs and how many mistakes it produces.
+Using previously created model, we predicted values on training and validation sets. The results proved that usage of Random Forest were right choice. We used `confusion` and `confusionImage` to visualize Confusion Matrix, to check how model performs and how many mistakes it produces.
 
-```{r}
-library(mlearning)
-```
-```{r}
-predTrain <- predict(modFit, trainPC)
-confusionImage(confusion(predTrain, trainPC$classe))
+```{r, cache=TRUE, fig.cap='Figure 3. Confussion matrix for training data set.'}
+predTrain <- predict(modFit, train)
+confusionImage(confusion(predTrain, train$classe))
 ```
 
-Figure 3. Confussion matrix for train data
-
-
-```{r}
-predTest <- predict(modFit, testPC)
-confusionImage(confusion(predTest, testPC$classe))
+```{r, cache=TRUE, fig.cap='Figure 4. Confussion matrix for validation data set.'}
+predValidation <- predict(modFit, validation)
+confusionImage(confusion(predValidation , validation$classe))
 ```
 
-Figure 4. Confussion matrix for test data
 
-We can see that model's accuracy for extracted test set is 99% which is very good score. Random forest algorithm performs very well on default parameters, giving very high accuracy. The bespoken model has been used for test set provided for automatical grading.
+## Summary
 
-```{r}
+The accuracy of the model can be calculated as:
+```{r, cache=TRUE}
+accuracy <- confusionMatrix(table(predValidation, validation$classe))$overall['Accuracy']
+```
+
+Accuracy of **`r round(accuracy, 4) * 100`%** indicates that model preform very well and is very accurate. The model has been used for test set provided for automatic grading to predict class of 20 measurements.
+
+```{r, cache=TRUE}
 finalTest$prediction <- predict(modFit, finalTest)
 ```
 
-Predicted values for given test has been uploaded to Coursera platform for automatic grading. All 20 samples were predicted correctly, which proved that we build right model.
+Predicted values for given test set has been uploaded to Coursera platform for automatic grading. All 20 samples were predicted correctly, which proved that we build right model.
 
 ## References
 [1] Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
 
-[2] Random Forest on Wikipedia <http://en.wikipedia.org/wiki/Random_forest>
+[2] Random Forest on Wikipedia; <http://en.wikipedia.org/wiki/Random_forest>
+
+[3] Hastie, Trevor; Tibshirani, Robert; Friedman, Jerome (2008). The Elements of Statistical Learning (2nd ed.). Springer. ISBN 0-387-95284-5.
+
+[4] Gini importance, Random Forests, Leo Breiman and Adele Cutler; <https://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#giniimp>
+
+[5] The out-of-bag (oob) error estimate, Random Forests, Leo Breiman and Adele Cutler; <https://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#workings>

@@ -4,3 +4,5 @@
 .~lock.*
 problem_id_*.txt
 *.Robj
+*_cache
+*_files
